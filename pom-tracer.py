@@ -12,10 +12,4 @@ trace = expanduser("~")
 
 trace += '/workspaces/jira-ticket-1401/pom-trace.txt'
 wh = workHorse.workHorse(args.filename, trace)
-
-#wh.findParent()
-#wh.children()
-#wh.descendants()
-#wh.contents()
-#wh.test()
 wh.currentPomAttributes()
