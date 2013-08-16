@@ -3,10 +3,10 @@
 __author__ = 'dcatalano'
 
 import sys
-from bs4 import BeautifulSoup
+import re
 import os
 from os.path import expanduser
-
+from bs4 import BeautifulSoup
 
 class workHorse:
 
@@ -14,6 +14,8 @@ class workHorse:
         self.pathToPom = pathToPom
         self.m2dir = expanduser('~') + '/.m2/repository/'
         self.listOfPomsAndAttributes = []
+        self.rootPomDir = os.path.dirname(self.pathToPom)
+        self.currentPomDir = os.path.dirname(self.pathToPom)
 
     def setm2dir(self, m2dir):
         self.m2dir = m2dir
@@ -28,9 +30,9 @@ class workHorse:
         self.soup = BeautifulSoup(fh, "xml")
         fh.close()
 
-        self.parent_data = []
         self.module_data = []
         self.current_pom_data = []
+        self.parent_data = []
 
         self.checkListForParent('groupId')
         self.checkListForParent('artifactId')
@@ -40,10 +42,9 @@ class workHorse:
         self.checkListForParent('relativePath')
         self.checkListForParent('module')
 
-        # TODO switch order since parent changes path to pom.xml and current uses it
-        parentDict = self.parentDataToDict(self.parent_data)
-        moduleList = self.moduleDataToDict(self.module_data)
         currentPomDict = self.currentPomDataToDict(self.current_pom_data)
+        moduleList = self.moduleDataToDict(self.module_data)
+        parentDict = self.parentDataToDict(self.parent_data)
 
         levelDict = {'current': currentPomDict,
                      'parent': parentDict,
@@ -67,32 +68,39 @@ class workHorse:
             elif parent_info.name == 'project':
                 self.current_pom_data.append(element)
 
-    def parentDataToDict(self, listOfTagsFromParent):
-        parentDict = {}
+    def currentPomDataToDict(self, listOfTagsFromParent):
+        currentPomDict = {}
         for element in listOfTagsFromParent:
-            parentDict.update({element.name: element.string})
-
-        # TODO add K path V self.pathToPom
-        if len(listOfTagsFromParent) > 0:
-            self.pathToPom = self.getFilenameOfNextPom(parentDict)
-        else:
-            self.pathToPom = None
-        return parentDict
+            currentPomDict.update({element.name: element.string})
+        currentPomDict.update({'pathToFile': self.pathToPom})
+        return currentPomDict
 
     def moduleDataToDict(self, listOfTagsFromParent):
         moduleList = []
         for element in listOfTagsFromParent:
             # TODO create a new workhorse object and run currentPomAttributes() attach list to
-            moduleList.append({element.name: element.string})
+            if element.name == 'module':
+                filename = self.getFilenameOfModulePom(element.string)
+                self.currentPomDir = os.path.dirname(filename)
+                wh = workHorse(filename)
+                hierarchy = wh.currentPomAttributes()
+                moduleList.append({element.name: element.string, 'moduleHierarchy': hierarchy})
+            else:
+                moduleList.append({element.name: element.string})
 
         return moduleList
 
-    def currentPomDataToDict(self, listOfTagsFromParent):
-        currentPomDict = {}
+    def parentDataToDict(self, listOfTagsFromParent):
+        parentDict = {}
         for element in listOfTagsFromParent:
-            currentPomDict.update({element.name: element.string})
-        # TODO add K path V self.pathToPom
-        return currentPomDict
+            parentDict.update({element.name: element.string})
+
+        if len(listOfTagsFromParent) > 0:
+            self.pathToPom = self.getFilenameOfNextPom(parentDict)
+            parentDict.update({'pathToFile': self.pathToPom})
+        else:
+            self.pathToPom = None
+        return parentDict
 
     def getFilenameOfNextPom(self, parentDict):
         group = parentDict['groupId']
@@ -101,6 +109,19 @@ class workHorse:
                          + str(parentDict['version']) + '/' + str(parentDict['artifactId']) + '-' \
                          + str(parentDict['version']) + '.pom'
         return directoryToPom
+
+    def getFilenameOfModulePom(self, directoryToFile):
+        match = re.search('(^([\.])(/(.+[pom\.][xml]))$)', directoryToFile)
+        if match is not None:
+            #print(self.currentPomDir + match.group(3))
+            modulePomFile = self.currentPomDir + match.group(3)
+            return modulePomFile
+            # print(match.group(3))
+            # print(match.groups())
+            # print(str(match))
+        else:
+            modulePomFile = self.rootPomDir + '/' + directoryToFile + '/pom.xml'
+            return modulePomFile
 
     def writeToFile(self, filename):
         if os.path.isfile(filename):
