@@ -10,21 +10,19 @@ from os.path import expanduser
 
 class workHorse:
 
-    def __init__(self, pathToPom, trace):
+    def __init__(self, pathToPom):
         self.pathToPom = pathToPom
-        self.trace = trace
         self.m2dir = expanduser('~') + '/.m2/repository/'
-
         self.listOfPomsAndAttributes = []
 
-        if os.path.isfile(self.trace):
-            os.remove(self.trace)
+    def setm2dir(self, m2dir):
+        self.m2dir = m2dir
 
     def currentPomAttributes(self):
         try:
             fh = open(self.pathToPom, 'r')
         except OSError:
-            print("Oops that was not supposed to happen. Bye...")
+            print("Oops, that was not supposed to happen. Can't open \"" + str(self.pathToPom) + "\". Bye...")
             sys.exit(1)
 
         self.soup = BeautifulSoup(fh, "xml")
@@ -42,6 +40,7 @@ class workHorse:
         self.checkListForParent('relativePath')
         self.checkListForParent('module')
 
+        # TODO switch order since parent changes path to pom.xml and current uses it
         parentDict = self.parentDataToDict(self.parent_data)
         moduleList = self.moduleDataToDict(self.module_data)
         currentPomDict = self.currentPomDataToDict(self.current_pom_data)
@@ -73,8 +72,9 @@ class workHorse:
         for element in listOfTagsFromParent:
             parentDict.update({element.name: element.string})
 
+        # TODO add K path V self.pathToPom
         if len(listOfTagsFromParent) > 0:
-            self.pathToPom = self.createNewFileName(parentDict)
+            self.pathToPom = self.getFilenameOfNextPom(parentDict)
         else:
             self.pathToPom = None
         return parentDict
@@ -82,29 +82,33 @@ class workHorse:
     def moduleDataToDict(self, listOfTagsFromParent):
         moduleList = []
         for element in listOfTagsFromParent:
+            # TODO create a new workhorse object and run currentPomAttributes() attach list to
             moduleList.append({element.name: element.string})
+
         return moduleList
 
     def currentPomDataToDict(self, listOfTagsFromParent):
         currentPomDict = {}
         for element in listOfTagsFromParent:
             currentPomDict.update({element.name: element.string})
+        # TODO add K path V self.pathToPom
         return currentPomDict
 
-    def createNewFileName(self, parentDict):
+    def getFilenameOfNextPom(self, parentDict):
         group = parentDict['groupId']
         group = group.replace('.', '/')
         directoryToPom = str(self.m2dir) + str(group) + '/' + str(parentDict['artifactId']) + '/' \
                          + str(parentDict['version']) + '/' + str(parentDict['artifactId']) + '-' \
                          + str(parentDict['version']) + '.pom'
-        #print(directoryToPom)
         return directoryToPom
 
-    def writeToFile(self, tag):
+    def writeToFile(self, filename, tag):
+        if os.path.isfile(filename):
+            os.remove(filename)
         try:
-            wh = open(self.trace, 'x')
+            wh = open(filename, 'x')
         except OSError:
-            print("Oops that was not supposed to happen. Bye..." + str(OSError.errno))
+            print("Oops, that was not supposed to happen. Can't open \"" + filename + "\". Bye...")
             sys.exit(1)
 
         wh.write(str(self.pathToPom))

@@ -13,7 +13,7 @@ trace = expanduser("~") + '/workspaces/jira-ticket-1401/pom-trace.txt'
 if args.filename[0] == '~':
     args.filename = expanduser('~') + args.filename[1:]
 
-wh = workHorse.workHorse(args.filename, trace)
+wh = workHorse.workHorse(args.filename)
 hierarchy = wh.currentPomAttributes()
 
 print(hierarchy)
