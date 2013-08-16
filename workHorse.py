@@ -102,7 +102,7 @@ class workHorse:
                          + str(parentDict['version']) + '.pom'
         return directoryToPom
 
-    def writeToFile(self, filename, tag):
+    def writeToFile(self, filename):
         if os.path.isfile(filename):
             os.remove(filename)
         try:
@@ -111,14 +111,5 @@ class workHorse:
             print("Oops, that was not supposed to happen. Can't open \"" + filename + "\". Bye...")
             sys.exit(1)
 
-        wh.write(str(self.pathToPom))
-        wh.write('\n')
-        wh.write('name:')
-        wh.write(tag.name)
-        wh.write('| string:')
-        wh.write(tag.string)
-        wh.write('| tag:')
-        wh.write(str(tag))
-        wh.write('\n\n')
-
+        # TODO - not implemented yet
         wh.close()
