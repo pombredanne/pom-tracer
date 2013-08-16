@@ -14,4 +14,6 @@ if args.filename[0] == '~':
     args.filename = expanduser('~') + args.filename[1:]
 
 wh = workHorse.workHorse(args.filename, trace)
-wh.currentPomAttributes()
+hierarchy = wh.currentPomAttributes()
+
+print(hierarchy)

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 __author__ = 'dcatalano'
+
 import sys
 from bs4 import BeautifulSoup
 import os
@@ -50,6 +51,10 @@ class workHorse:
                      'module': moduleList}
 
         self.listOfPomsAndAttributes.append(levelDict)
+        if self.pathToPom is not None:
+            self.currentPomAttributes()
+
+        return self.listOfPomsAndAttributes
 
     def checkListForParent(self, search_string):
         the_list = self.soup.find_all(search_string)
@@ -60,7 +65,7 @@ class workHorse:
                 self.parent_data.append(element)
             elif parent_info.name == 'modules':
                 self.module_data.append(element)
-            else:
+            elif parent_info.name == 'project':
                 self.current_pom_data.append(element)
 
     def parentDataToDict(self, listOfTagsFromParent):
@@ -74,14 +79,6 @@ class workHorse:
             self.pathToPom = None
         return parentDict
 
-    def createNewFileName(self, parentDict):
-        group = parentDict['groupId']
-        group = group.replace('.', '/')
-        directoryToPom = str(self.m2dir) + str(group) + '/' + str(parentDict['artifactId']) + '/' \
-                         + str(parentDict['version']) + '/' + str(parentDict['artifactId']) + '-' \
-                         + str(parentDict['version']) + '.pom'
-        print(directoryToPom)
-
     def moduleDataToDict(self, listOfTagsFromParent):
         moduleList = []
         for element in listOfTagsFromParent:
@@ -93,6 +90,15 @@ class workHorse:
         for element in listOfTagsFromParent:
             currentPomDict.update({element.name: element.string})
         return currentPomDict
+
+    def createNewFileName(self, parentDict):
+        group = parentDict['groupId']
+        group = group.replace('.', '/')
+        directoryToPom = str(self.m2dir) + str(group) + '/' + str(parentDict['artifactId']) + '/' \
+                         + str(parentDict['version']) + '/' + str(parentDict['artifactId']) + '-' \
+                         + str(parentDict['version']) + '.pom'
+        #print(directoryToPom)
+        return directoryToPom
 
     def writeToFile(self, tag):
         try:
